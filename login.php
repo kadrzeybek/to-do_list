@@ -85,7 +85,7 @@ mysqli_close($conn);
     <div class="box">
       <div class="inner-box">
         <div class="forms-wrap">
-          <form action="" method="post" autocomplete="off" class="sign-in-form">
+          <form action="" method="post" autocomplete="off" class="sign-in-form login_form">
             <div class="logo">
               <img src="./img/logo.png"/>
               <h4>ToDoList</h4>
@@ -107,7 +107,7 @@ mysqli_close($conn);
               <input type="submit" name="login" value="Giriş Yap" class="sign-btn" />
             </div>
           </form>
-          <form action="login.php" method="post" autocomplete="off" class="sign-up-form">
+          <form action="login.php" method="post" autocomplete="off" class="sign-up-form login_form">
             <div class="logo">
               <img src="./img/logo.png"/>
               <h4>toDoList</h4>

@@ -16,6 +16,10 @@ function execute_query($conn, $sql, $types = '', ...$params) {
     return false;
 }
 
+
+
+
+
 // --- Kullanıcı Kontrolü ve Bilgileri Çek ---
 if (!isset($_SESSION['username'])) {
     header("Location: login.php");
@@ -36,12 +40,27 @@ if ($stmt) {
     die("Kullanıcı bilgileri alınamadı.");
 }
 
+//paging
+$limit = 5;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = max($page, 1);
+$offset = ($page - 1) * $limit;
+$count_stmt = execute_query($conn, "SELECT COUNT(*) AS total FROM todos WHERE user_id = ?", "i", $user_id);
+$count_result = mysqli_stmt_get_result($count_stmt);
+$row = mysqli_fetch_assoc($count_result);
+$total_todos = $row['total'];
+
+$total_pages = ceil($total_todos / $limit);
+
 // --- Yeni ToDo Ekleme ---
 if (isset($_POST['add_todo'])) {
     $todo_text = trim($_POST['todo_text']);
-    if (!empty($todo_text)) {
-        execute_query($conn, "INSERT INTO todos (user_id, todo_text) VALUES (?, ?)", "is", $user_id, $todo_text);
-    }
+$category_id = intval($_POST['category_id']) ?? null;
+
+if (!empty($todo_text)) {
+    execute_query($conn, "INSERT INTO todos (user_id, todo_text, category_id) VALUES (?, ?, ?)", "isi", $user_id, $todo_text, $category_id);
+}
+
     header("Location: index.php");
     exit();
 }
@@ -69,13 +88,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['todo_id'], $_POST['do
 
 
 // --- Kullanıcıya Ait Tüm ToDo'ları Çek ---
-$stmt = execute_query($conn, "SELECT * FROM todos WHERE user_id = ? ORDER BY done ASC, updated_at DESC", "i", $user_id);
+$stmt = execute_query(
+    $conn, 
+    "SELECT todos.*, categories.category_name 
+     FROM todos 
+     LEFT JOIN categories ON todos.category_id = categories.category_id
+     WHERE todos.user_id = ?
+     ORDER BY todos.done ASC, todos.updated_at DESC
+     LIMIT ? OFFSET ?", 
+    "iii", $user_id, $limit, $offset
+);
+
 
 if ($stmt) {
     $todos = mysqli_stmt_get_result($stmt);
 } else {
     die("To-Do listesi alınamadı.");
 }
+
 
 ?>
 
@@ -90,67 +120,136 @@ if ($stmt) {
     <link href="./css/style.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container py-3">
-        <div class="d-flex justify-content-center">
-            <div class="mb-1 p-3 position-relative text-center" style="max-width: 700px; width: 100%;"><img id="currentAvatar" src="img/<?php echo htmlspecialchars($user['avatar']); ?>" width="100" height="100" class="rounded-circle ">
-                <div class="dropdown position-absolute top-0 end-0 m-3">
-                    <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-person-fill"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuLink">
-                    <li>
-            <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#profileModal">
-                Profili Düzenle
-            </button>
-        </li>
-                        <li>
-                            <a class="dropdown-item" href="logout.php">Çıkış Yap</a>
-                        </li>
-                    </ul>
+    <div class="container py-2 px-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-center">
+                    <div class="mb-1 p-3 position-relative text-center" style="max-width: 700px; width: 100%;"><img id="currentAvatar" src="img/<?php echo htmlspecialchars($user['avatar']); ?>" width="100" height="100" class="rounded-circle ">
+                        <div class="dropdown position-absolute top-0 end-0 m-3">
+                            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-fill"></i>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuLink">
+                                <li>
+                                    <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#profileModal">Profili Düzenle</button>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="logout.php">Çıkış Yap</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <h1 class="fw-bold text-dark m-0">To-Do List</h1>
+                        <p class="text-muted mt-2">Hoşgeldin <?php echo htmlspecialchars($username); ?></p>
+                    </div>
                 </div>
-                <h1 class="fw-bold text-dark m-0">To-Do List</h1>
-                <p class="text-muted mt-2">Hoşgeldin <?php echo htmlspecialchars($username); ?></p>
             </div>
         </div>
-        <div class="mx-auto rounded-4 bg-white p-4 shadow-sm" style="max-width: 700px;">
-            <form method="post" style="max-width: 700px;">
-                <div class="d-flex mb-3">
-                    <input type="text" name="todo_text" class="form-control me-2" placeholder="Yapacağınız Şey..." required>
-                    <button type="submit" name="add_todo" class="btn text-white fw-bold px-3" style="background-color:#ff8269;">+</button>
+        <div class="row justify-content-center aling-items-stretch">
+            <div class="col-md-3">
+                <div class="d-flex flex-column gap-3 h-100">
+                    <div class="card p-3 shadow-sm h-100">
+                        <h5 class="fw-bold mb-3">Kategori Ekle</h5>
+                        <form method="POST" action="index.php">
+                            <div class="d-flex mb-3">
+                                <input type="text" name="category_name" class="form-control" placeholder="Kategori Adı" required>
+                                <input type="color" name="category_color" class="form-control form-control-color" title="Kategori Rengi Seç" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Kategori Ekle</button>
+                        </form>
+                    </div>
+                    <div class=" card p-3 shadow-sm h-100">
+                        <h5 class="fw-bold mb-3">Kategoriler</h5>
+                        <?php
+                            $category_stmt = execute_query($conn, "SELECT * FROM categories");
+                            $categories = mysqli_stmt_get_result($category_stmt);
+                        ?>
+                        <ul class="list-group">
+                            <?php while ($cat = mysqli_fetch_assoc($categories)): ?>
+                                <li class="list-group-item d-flex align-items-center gap-2">
+                                    <div style="width: 16px; height: 16px; background-color:    
+                                        <?php echo htmlspecialchars($cat['color']); ?>; border-radius: 50%;">
+                                    </div>
+                                    <span>
+                                        <?php echo htmlspecialchars($cat['category_name']); ?>
+                                    </span>
+                                </li>
+                            <?php endwhile; ?>
+                        </ul>
+                    </div>
                 </div>
-            </form>
-            <ul class="list-group">
-                <?php while ($todo = mysqli_fetch_assoc($todos)): ?>
-                    <li class="list-group-item d-flex align-items-center justify-content-between gap-2 <?php echo ($todo['done'] ?? 0) ? 'completed' : ''; ?>">
-                        <div class="d-flex align-items-start flex-grow-1 overflow-hidden gap-2" style="min-width: 0;">
-                            <form method="post" class="m-0 p-0" style="display: inline-block; width: auto;">
-                                <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
-                                <input type="hidden" name="done" value="<?php echo ($todo['done'] ?? 0) ? '0' : '1'; ?>">
-                                <input type="checkbox" class="form-check-input custom-checkbox" onchange="this.form.submit()" <?php echo ($todo['done'] ?? 0) ? 'checked' : ''; ?>>
-                            </form>
-                            <span class="text-break text-start <?php echo ($todo['done'] ?? 0) ? 'text-decoration-line-through text-muted' : ''; ?>">
-                                <?php echo htmlspecialchars($todo['todo_text']); ?>
-                            </span>
+            </div>
+            <div class="col-md-7">
+                <div class="card p-4 shadow-sm" >
+                    <?php
+                        $category_stmt = execute_query($conn, "SELECT * FROM categories");
+                        $categories = mysqli_stmt_get_result($category_stmt);
+                    ?>
+                    <form method="post" class="w-100">
+                        <div class="d-flex w-100 mb-3 align-items-center todo_form">
+                            <input type="text" name="todo_text" class="form-control flex-grow-1 me-2" placeholder="Yapacağınız Şey..." required>
+                            <select name="category_id" class="form-select me-2" style="width: 150px;">
+                                <?php while ($cat = mysqli_fetch_assoc($categories)): ?>
+                                    <option value="<?php echo $cat['category_id']; ?>"><?php echo htmlspecialchars($cat['category_name']); ?></option>
+                                <?php endwhile; ?>
+                            </select>
+                            <button type="submit" name="add_todo" class="btn text-white fw-bold px-3" style="background-color:#ff8269;">+</button>
                         </div>
-
-                        <div class="d-flex gap-1">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editModal"
-                                    data-id="<?php echo $todo['todo_id']; ?>"
-                                    data-text="<?php echo htmlspecialchars($todo['todo_text']); ?>">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
-                            <form method="post" action="delete_todo.php" class="m-0 p-0">
-                                <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </li>
-                <?php endwhile; ?>
-            </ul>
+                    </form>
+                    <ul class="list-group">
+                        <?php while ($todo = mysqli_fetch_assoc($todos)): ?>
+                            <li class="list-group-item d-flex align-items-center justify-content-between gap-2 <?php echo ($todo['done'] ?? 0) ? 'completed' : ''; ?>">
+                                <div class="d-flex align-items-start flex-grow-1 overflow-hidden gap-2" style="min-width: 0;">
+                                    <form method="post" class="m-0 p-0" style="display: inline-block; width: auto;">
+                                        <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
+                                        <input type="hidden" name="done" value="<?php echo ($todo['done'] ?? 0) ? '0' : '1'; ?>">
+                                        <input type="checkbox" class="form-check-input custom-checkbox" onchange="this.form.submit()" <?php echo ($todo['done'] ?? 0) ? 'checked' : ''; ?>>
+                                    </form>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 12px; height: 12px; border-radius: 50%; background-color: <?php echo $categoryColors[$todo['category_name']] ?? '#ced4da'; ?>;">
+                                        </div>
+                                        <span class="text-break text-start <?php echo ($todo['done'] ?? 0) ? 'text-decoration-line-through text-muted' : ''; ?>">
+                                            <?php echo htmlspecialchars($todo['todo_text']); ?>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editModal" data-id="<?php echo $todo['todo_id']; ?>" data-text="<?php echo htmlspecialchars($todo['todo_text']); ?>">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <form method="post" action="delete_todo.php" class="m-0 p-0">
+                                        <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </li>
+                        <?php endwhile; ?>
+                    </ul>
+                    <div class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item <?php if ($page <= 1) echo 'disabled'; ?>">
+                                <a class="page-link" href="<?php if ($page > 1) echo '?page=' . ($page - 1); else echo '#'; ?>">Önceki</a>
+                            </li>
+                            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
+                                    <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                </li>
+                            <?php endfor; ?>
+                            <li class="page-item <?php if ($page >= $total_pages) echo 'disabled'; ?>">
+                                <a class="page-link" href="<?php if ($page < $total_pages) echo '?page=' . ($page + 1); else echo '#'; ?>">Sonraki</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+
+
+
+
 
 
 <form method="POST" action="index.php">
