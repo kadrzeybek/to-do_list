@@ -47,27 +47,30 @@ if (isset($_POST['add_todo'])) {
 }
 
 // --- ToDo Güncelleme (Metin) ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['todo_id'], $_POST['todo_text'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['todo_id'], $_POST['todo_text']) && !isset($_POST['done'])) {
     $todo_id = intval($_POST['todo_id']);
     $todo_text = trim($_POST['todo_text']);
     if (!empty($todo_text)) {
-        execute_query($conn, "UPDATE todos SET todo_text = ? WHERE todo_id = ?", "si", $todo_text, $todo_id);
+        execute_query($conn, "UPDATE todos SET todo_text = ?, updated_at = CURRENT_TIMESTAMP WHERE todo_id = ?", "si", $todo_text, $todo_id);
     }
     header("Location: index.php");
     exit();
 }
 
+
 // --- ToDo Güncelleme (Yapıldı) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['todo_id'], $_POST['done'])) {
     $todo_id = intval($_POST['todo_id']);
     $done = ($_POST['done'] === '1') ? 1 : 0;
-    execute_query($conn, "UPDATE todos SET done = ? WHERE todo_id = ?", "ii", $done, $todo_id);
+    execute_query($conn, "UPDATE todos SET done = ?, updated_at = CURRENT_TIMESTAMP WHERE todo_id = ?", "ii", $done, $todo_id);
     header("Location: index.php");
     exit();
 }
 
+
 // --- Kullanıcıya Ait Tüm ToDo'ları Çek ---
-$stmt = execute_query($conn, "SELECT * FROM todos WHERE user_id = ? ORDER BY done ASC, todo_id DESC", "i", $user_id);
+$stmt = execute_query($conn, "SELECT * FROM todos WHERE user_id = ? ORDER BY done ASC, updated_at DESC", "i", $user_id);
+
 if ($stmt) {
     $todos = mysqli_stmt_get_result($stmt);
 } else {
