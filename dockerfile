@@ -1,17 +1,17 @@
 FROM php:8.2-apache
 
-# Render ortamındaki PORT değişkenini kullan
+# Render'ın atadığı PORT ortam değişkenini oku
 ENV PORT=10000
 
-# Apache yapılandırmasını Render'ın PORT değişkenine göre güncelle
+# Apache'nin dinlediği portu bu değişkenle değiştir
 RUN sed -i "s/80/${PORT}/g" /etc/apache2/ports.conf && \
-    sed -i "s/80/${PORT}/g" /etc/apache2/sites-enabled/000-default.conf
+    sed -i "s/:80>/:${PORT}>/g" /etc/apache2/sites-enabled/000-default.conf
 
-# Uygulama dosyalarını kopyala
+# Projeni apache dizinine kopyala
 COPY . /var/www/html/
 
-# Apache'yi başlat (foreground'da)
-CMD ["apache2-foreground"]
-
-# Render'a hangi portu expose ettiğimizi bildir
+# Render'a dışarı açılan portu bildir
 EXPOSE ${PORT}
+
+# Apache’yi foreground’da başlat (container canlı kalsın)
+CMD ["apache2-foreground"]
