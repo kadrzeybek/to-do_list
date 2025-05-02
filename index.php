@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 session_start();
 require_once 'database.php';
@@ -39,6 +42,34 @@ if ($stmt) {
     // Hata yönetimi
     die("Kullanıcı bilgileri alınamadı.");
 }
+// --- Yeni Kategori Ekle ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_category'])) {
+    $category_name = trim($_POST['category_name']);
+    $category_color = $_POST['category_color'];
+
+    if (!empty($category_name) && !empty($category_color)) {
+        execute_query($conn, "INSERT INTO categories (category_name, color, user_id) VALUES (?, ?, ?)", "ssi", $category_name, $category_color, $user_id);
+
+    }
+
+    header("Location: index.php");
+    exit();
+}
+
+
+$categoryColors = [];
+$categories = [];
+
+$category_stmt = execute_query($conn, "SELECT category_id, category_name, color FROM categories WHERE user_id = ?", "i", $user_id);
+
+if ($category_stmt) {
+    $result = mysqli_stmt_get_result($category_stmt);
+    while ($row = mysqli_fetch_assoc($result)) {
+        $categories[] = $row; // tüm kategorileri diziye at
+        $categoryColors[$row['category_name']] = $row['color']; // renk eşleştir
+    }
+}
+
 
 //paging
 $limit = 5;
@@ -88,16 +119,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['todo_id'], $_POST['do
 
 
 // --- Kullanıcıya Ait Tüm ToDo'ları Çek ---
-$stmt = execute_query(
-    $conn, 
-    "SELECT todos.*, categories.category_name 
-     FROM todos 
-     LEFT JOIN categories ON todos.category_id = categories.category_id
-     WHERE todos.user_id = ?
-     ORDER BY todos.done ASC, todos.updated_at DESC
-     LIMIT ? OFFSET ?", 
-    "iii", $user_id, $limit, $offset
-);
+$filter_category_id = isset($_GET['category']) ? intval($_GET['category']) : null;
+
+if ($filter_category_id) {
+    $stmt = execute_query(
+        $conn,
+        "SELECT todos.*, categories.category_name 
+        FROM todos 
+        LEFT JOIN categories 
+        ON todos.category_id = categories.category_id AND categories.user_id = ?
+        WHERE todos.user_id = ?
+        ORDER BY todos.done ASC, todos.updated_at DESC
+        LIMIT ? OFFSET ?",
+        "iiii",
+        $user_id, $user_id, $limit, $offset
+    );
+    
+} else {
+    $stmt = execute_query(
+        $conn,
+        "SELECT todos.*, categories.category_name 
+         FROM todos 
+         LEFT JOIN categories ON todos.category_id = categories.category_id
+         WHERE todos.user_id = ?
+         ORDER BY todos.done ASC, todos.updated_at DESC
+         LIMIT ? OFFSET ?",
+        "iii",
+        $user_id, $limit, $offset
+    );
+}
+
 
 
 if ($stmt) {
@@ -150,30 +201,39 @@ if ($stmt) {
                     <div class="card p-3 shadow-sm h-100">
                         <h5 class="fw-bold mb-3">Kategori Ekle</h5>
                         <form method="POST" action="index.php">
-                            <div class="d-flex mb-3">
+                            <div class="d-flex mb-3 gap-1">
                                 <input type="text" name="category_name" class="form-control" placeholder="Kategori Adı" required>
                                 <input type="color" name="category_color" class="form-control form-control-color" title="Kategori Rengi Seç" required>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">Kategori Ekle</button>
+                            <button type="submit" name="add_category" class="btn btn-warning w-100">Kategori Ekle</button>
+
                         </form>
                     </div>
-                    <div class=" card p-3 shadow-sm h-100">
+
+                    <div class=" card p-3 mb-3 mb-md-0 shadow-sm h-100">
                         <h5 class="fw-bold mb-3">Kategoriler</h5>
-                        <?php
-                            $category_stmt = execute_query($conn, "SELECT * FROM categories");
-                            $categories = mysqli_stmt_get_result($category_stmt);
-                        ?>
                         <ul class="list-group">
-                            <?php while ($cat = mysqli_fetch_assoc($categories)): ?>
-                                <li class="list-group-item d-flex align-items-center gap-2">
-                                    <div style="width: 16px; height: 16px; background-color:    
-                                        <?php echo htmlspecialchars($cat['color']); ?>; border-radius: 50%;">
+                            <li class="list-group-item <?php if (!$filter_category_id) echo 'active_1'; ?>">
+                                <a href="index.php" class="text-decoration-none text-dark d-block">Tümünü Göster</a>
+                            </li>
+                            <?php foreach ($categories as $cat): ?>
+                                <li class="list-group-item d-flex align-items-center justify-content-between <?php if ($filter_category_id == $cat['category_id']) echo 'active_1'; ?>">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 12px; height: 12px; border-radius: 50%; background-color: <?php echo htmlspecialchars($cat['color']); ?>;"></div>
+                                        <a href="?category=<?php echo $cat['category_id']; ?>" class="text-decoration-none text-dark">
+                                            <?php echo htmlspecialchars($cat['category_name']); ?>
+                                        </a>
                                     </div>
-                                    <span>
-                                        <?php echo htmlspecialchars($cat['category_name']); ?>
-                                    </span>
+                                    
+                                    <form method="POST" action="delete_category.php" class="m-0 p-0">
+                                        <input type="hidden" name="category_id" value="<?php echo $cat['category_id']; ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" style="padding: 2px 6px;">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </button>
+                                    </form>
                                 </li>
-                            <?php endwhile; ?>
+                            <?php endforeach; ?>
+                            
                         </ul>
                     </div>
                 </div>
@@ -181,17 +241,20 @@ if ($stmt) {
             <div class="col-md-7">
                 <div class="card p-4 shadow-sm" >
                     <?php
-                        $category_stmt = execute_query($conn, "SELECT * FROM categories");
+                        $category_stmt = execute_query($conn, "SELECT * FROM categories WHERE user_id = ?", "i", $user_id);
                         $categories = mysqli_stmt_get_result($category_stmt);
+                        
                     ?>
                     <form method="post" class="w-100">
                         <div class="d-flex w-100 mb-3 align-items-center todo_form">
                             <input type="text" name="todo_text" class="form-control flex-grow-1 me-2" placeholder="Yapacağınız Şey..." required>
                             <select name="category_id" class="form-select me-2" style="width: 150px;">
-                                <?php while ($cat = mysqli_fetch_assoc($categories)): ?>
+                                <?php foreach ($categories as $cat): ?>
                                     <option value="<?php echo $cat['category_id']; ?>"><?php echo htmlspecialchars($cat['category_name']); ?></option>
-                                <?php endwhile; ?>
+                                <?php endforeach; ?>
                             </select>
+
+
                             <button type="submit" name="add_todo" class="btn text-white fw-bold px-3" style="background-color:#ff8269;">+</button>
                         </div>
                     </form>
@@ -265,8 +328,8 @@ if ($stmt) {
                     <input type="text" class="form-control  px-4 py-2" id="editTodoText" name="todo_text" placeholder="Update your task..." required>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
                 </div>
             </div>
         </div>
@@ -293,7 +356,6 @@ if ($stmt) {
                             <p class="text-center">Avatar Seç</p>
                         </div>
                         <div class="row justify-content-center mb-3 py-4">
-                            <!-- Avatar Seçimi -->
                             <div class="col-4 col-md-3 position-relative">
                                 <input type="radio" class="custom-control-input" id="default" name="avatar" value="default.png" <?php if ($user['avatar'] === 'default.png') echo 'checked'; ?>>
                                 <label class="custom-control-label ms-4" for="default">
@@ -332,9 +394,9 @@ if ($stmt) {
                     </div>
                 </div>
 
-                <!-- Modal Footer -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+
                     <button type="submit" class="btn btn-primary">Kaydet</button>
                 </div>
             </div>
@@ -342,18 +404,6 @@ if ($stmt) {
     </div>
 </form>
 
-<script>
-    function updateAvatarPreview(avatar) {
-        document.getElementById('currentAvatar').src = 'img/' + avatar;
-    }
-
-    document.querySelectorAll('input[name="avatar"]').forEach(radio => {
-        radio.addEventListener('change', function () {
-            const selectedAvatar = this.value;
-            updateAvatarPreview(selectedAvatar);
-        });
-    });
-</script>
 
 <?php if (isset($_SESSION['open_profile_modal']) && $_SESSION['open_profile_modal']): ?>
 <script>
@@ -377,10 +427,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <?php unset($_SESSION['open_profile_modal']); ?>
 <?php endif; ?>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" 
     integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" 
     crossorigin="anonymous"></script>
     <script src="./js/app.js"></script>
+    
     
 </body>
 </html>

@@ -9,6 +9,10 @@
   font-family: "Poppins", sans-serif;
 }
 
+a{
+  text-decoration: none;
+  cursor: pointer;
+}
 
 body {
   background-color: #ffe0d2;
@@ -299,6 +303,17 @@ main.sign-up-mode .carousel {
   width: 1.1rem;
   background-color: #151111;
   border-radius: 1rem;
+}
+
+.list-group-item a{
+  cursor: pointer;
+}
+.list-group-item.active_1 {
+    
+    font-weight: bold;
+    
+    border-left: 4px solid #ff8269;
+    color: #212529;
 }
 
 
