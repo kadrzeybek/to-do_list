@@ -22,22 +22,18 @@ if (isset($_POST['login'])) {
 
     $stmt = execute_query($conn, "SELECT * FROM users WHERE email = ?", "s", $email);
     if ($stmt) {
-        $result = mysqli_stmt_get_result($stmt);
-        if ($row = mysqli_fetch_assoc($result)) {
-            if (password_verify($password, $row['password'])) {
-                $_SESSION['username'] = $row['username'];
-                $_SESSION['user_id'] = $row['user_id'];
-                header("Location: index.php");
-                exit();
-            } else {
-                echo "<script>alert('Yanlış Şifre!')</script>";
-            }
-        } else {
-            echo "<script>alert('Bu e-posta adresi kayıtlı değil!')</script>";
-        }
-    } else {
-        echo "<script>alert('Sorgu Hatası: " . mysqli_error($conn) . "')</script>";
-    }
+      $result = mysqli_stmt_get_result($stmt);
+      if ($row = mysqli_fetch_assoc($result)) {
+          if (password_verify($password, $row['password'])) {
+              $_SESSION['username'] = $row['username'];
+              $_SESSION['user_id'] = $row['user_id'];
+              header("Location: index.php");
+              exit();
+          }
+      }
+      $_SESSION['login_error'] = "E-posta veya şifre yanlış.";
+  }
+  
 }
 
 // --- Kayıt İşlemi ---
@@ -51,19 +47,18 @@ if (isset($_POST['submit'])) {
     if ($stmt) {
         $result = mysqli_stmt_get_result($stmt);
         if (mysqli_num_rows($result) > 0) {
-            echo "<script>alert('Bu e-posta adresi zaten kayıtlı!')</script>";
+          $_SESSION['register_error'] = "Bu e-posta mevcut.";
         } else {
             // Yeni kullanıcı kaydı
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
             $stmt = execute_query($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", "sss", $username, $email, $hashedPassword);
-            if ($stmt) {
-                $_SESSION['show_login'] = true;
-                echo "<script>document.addEventListener('DOMContentLoaded', function () {
-                        document.querySelector('.toggle').click();
-                    });</script>";
-            } else {
-                echo "<script>alert('Kayıt Başarısız: " . mysqli_error($conn) . "')</script>";
-            }
+            $stmt = execute_query($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", "sss", $username, $email, $hashedPassword);
+if ($stmt) {
+    $_SESSION['show_login'] = true; // ✅ başarılı kayıt → giriş ekranı göster
+} else {
+    $_SESSION['register_error'] = "Kayıt başarısız. Lütfen tekrar deneyin.";
+}
+
         }
     }
 }
@@ -104,6 +99,11 @@ mysqli_close($conn);
                 <input type="password" name="password" minlength="4" class="input-field" autocomplete="on" required/>
                 <label>Şifre</label>
               </div>
+              <?php if (isset($_SESSION['login_error'])): ?>
+                <p style="color: red; font-size: 0.9rem; margin-top: -1.5rem; margin-bottom: 1rem;">
+                  <?php echo $_SESSION['login_error']; unset($_SESSION['login_error']); ?>
+                </p>
+              <?php endif; ?>
               <input type="submit" name="login" value="Giriş Yap" class="sign-btn" />
             </div>
           </form>
@@ -130,8 +130,15 @@ mysqli_close($conn);
                 <input type="password" name="password" minlength="4" class="input-field" autocomplete="on" required/>
                 <label>Şifre</label>
               </div>
+              <?php if (isset($_SESSION['register_error'])): ?>
+                <p style="color: red; font-size: 0.9rem;">
+                  <?php echo $_SESSION['register_error']; unset($_SESSION['register_error']); ?>
+                </p>
+              <?php endif; ?>
               <input type="submit" name="submit" value="Hesap Oluştur" class="sign-btn" />
+              
             </div>
+            
           </form>
           </div>
           <div class="carousel">
@@ -161,12 +168,13 @@ mysqli_close($conn);
 
   <script src="./js/app.js"></script>
   <?php if (isset($_SESSION['show_login']) && $_SESSION['show_login']): ?>
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
       document.querySelector('.toggle').click();
-      });
-    </script>
+    });
+  </script>
   <?php unset($_SESSION['show_login']); ?>
-  <?php endif; ?>
+<?php endif; ?>
+
 </body>
 </html>

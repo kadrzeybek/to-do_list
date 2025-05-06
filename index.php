@@ -432,9 +432,31 @@ if ($stmt) {
                 </div>
 
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">Hesabımı Sil</button>
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
-
                     <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Hesap Silme Onay Modali -->
+<form method="POST" action="delete_account.php">
+    <div id="deleteAccountModal" class="modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Hesabınızı Silmek İstediğinize Emin misiniz?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bu işlem geri alınamaz. Tüm verileriniz silinecektir.</p>
+                </div>
+                <div class="modal-footer">
+                    <input type="hidden" name="user_id" value="<?php echo $user_id; ?>">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger">Evet, Sil</button>
                 </div>
             </div>
         </div>
