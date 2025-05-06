@@ -39,7 +39,6 @@ if ($stmt) {
     $_SESSION['user_id'] = $user['user_id'];
     $user_id = $user['user_id'];
 } else {
-    // Hata yönetimi
     die("Kullanıcı bilgileri alınamadı.");
 }
 // --- Yeni Kategori Ekle ---
@@ -65,14 +64,14 @@ $category_stmt = execute_query($conn, "SELECT category_id, category_name, color 
 if ($category_stmt) {
     $result = mysqli_stmt_get_result($category_stmt);
     while ($row = mysqli_fetch_assoc($result)) {
-        $categories[] = $row; // tüm kategorileri diziye at
-        $categoryColors[$row['category_name']] = $row['color']; // renk eşleştir
+        $categories[] = $row; 
+        $categoryColors[$row['category_name']] = $row['color'];
     }
 }
 
 
 //paging
-$limit = 5;
+$limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $page = max($page, 1);
 $offset = ($page - 1) * $limit;
@@ -97,15 +96,19 @@ if (!empty($todo_text)) {
 }
 
 // --- ToDo Güncelleme (Metin) ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['todo_id'], $_POST['todo_text']) && !isset($_POST['done'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['todo_id'], $_POST['todo_text'], $_POST['category_id']) && !isset($_POST['done'])) {
     $todo_id = intval($_POST['todo_id']);
     $todo_text = trim($_POST['todo_text']);
-    if (!empty($todo_text)) {
-        execute_query($conn, "UPDATE todos SET todo_text = ?, updated_at = CURRENT_TIMESTAMP WHERE todo_id = ?", "si", $todo_text, $todo_id);
+    $category_id = intval($_POST['category_id']);
+
+    if (!empty($todo_text) && $category_id > 0) {
+        execute_query($conn, "UPDATE todos SET todo_text = ?, category_id = ?, updated_at = CURRENT_TIMESTAMP WHERE todo_id = ?", "sii", $todo_text, $category_id, $todo_id);
     }
+
     header("Location: index.php");
     exit();
 }
+
 
 
 // --- ToDo Güncelleme (Yapıldı) ---
@@ -125,25 +128,25 @@ if ($filter_category_id) {
     $stmt = execute_query(
         $conn,
         "SELECT todos.*, categories.category_name 
-        FROM todos 
-        LEFT JOIN categories 
-        ON todos.category_id = categories.category_id AND categories.user_id = ?
-        WHERE todos.user_id = ?
-        ORDER BY todos.done ASC, todos.updated_at DESC
-        LIMIT ? OFFSET ?",
+         FROM todos 
+         LEFT JOIN categories ON todos.category_id = categories.category_id
+         WHERE todos.user_id = ? AND todos.category_id = ?
+         ORDER BY todos.done ASC, todos.updated_at DESC
+         LIMIT ? OFFSET ?",
         "iiii",
-        $user_id, $user_id, $limit, $offset
+        $user_id, $filter_category_id, $limit, $offset
     );
+    
     
 } else {
     $stmt = execute_query(
         $conn,
         "SELECT todos.*, categories.category_name 
-         FROM todos 
-         LEFT JOIN categories ON todos.category_id = categories.category_id
-         WHERE todos.user_id = ?
-         ORDER BY todos.done ASC, todos.updated_at DESC
-         LIMIT ? OFFSET ?",
+        FROM todos 
+        LEFT JOIN categories ON todos.category_id = categories.category_id
+        WHERE todos.user_id = ?
+        ORDER BY todos.done ASC, todos.updated_at DESC
+        LIMIT ? OFFSET ?",
         "iii",
         $user_id, $limit, $offset
     );
@@ -158,6 +161,8 @@ if ($stmt) {
 }
 
 
+
+
 ?>
 
 <!doctype html>
@@ -169,13 +174,16 @@ if ($stmt) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
     <link href="./css/style.css" rel="stylesheet">
+<style>
+    
+</style>
 </head>
 <body>
-    <div class="container py-2 px-4">
-        <div class="row">
-            <div class="col-12">
+    <div class="container py-3 px-4">
+    <div class="row justify-content-center align-items-stretch">
+    <div class="col-lg-3 mb-3 mb-lg-0">
                 <div class="d-flex justify-content-center">
-                    <div class="mb-1 p-3 position-relative text-center" style="max-width: 700px; width: 100%;"><img id="currentAvatar" src="img/<?php echo htmlspecialchars($user['avatar']); ?>" width="100" height="100" class="rounded-circle ">
+                    <div class="mb-1 position-relative text-center" style=" width: 100%;"><img id="currentAvatar" src="img/<?php echo htmlspecialchars($user['avatar']); ?>" width="100" height="100" class="rounded-circle ">
                         <div class="dropdown position-absolute top-0 end-0 m-3">
                             <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-person-fill"></i>
@@ -193,12 +201,8 @@ if ($stmt) {
                         <p class="text-muted mt-2">Hoşgeldin <?php echo htmlspecialchars($username); ?></p>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="row justify-content-center aling-items-stretch">
-            <div class="col-md-3">
-                <div class="d-flex flex-column gap-3 h-100">
-                    <div class="card p-3 shadow-sm h-100">
+                <div class="d-flex flex-column gap-3">
+                    <div class="card p-3 shadow-sm ">
                         <h5 class="fw-bold mb-3">Kategori Ekle</h5>
                         <form method="POST" action="index.php">
                             <div class="d-flex mb-3 gap-1">
@@ -210,12 +214,19 @@ if ($stmt) {
                         </form>
                     </div>
 
-                    <div class=" card p-3 mb-3 mb-md-0 shadow-sm h-100">
+                    <div class="card p-3  mb-md-0 shadow-sm h-100 mb-3">
                         <h5 class="fw-bold mb-3">Kategoriler</h5>
-                        <ul class="list-group">
-                            <li class="list-group-item <?php if (!$filter_category_id) echo 'active_1'; ?>">
-                                <a href="index.php" class="text-decoration-none text-dark d-block">Tümünü Göster</a>
+                        <ul class="list-group h-100" style="max-height: 193px; overflow-y: auto;">
+                            <li class="list-group-item  
+                                <?php if (!$filter_category_id) echo 'active_1'; ?>">
+                                    <a href="index.php" class="text-decoration-none text-dark d-block">Tümünü Göster</a>
                             </li>
+                            <?php if (empty($categories)): ?>
+                                <li class="list-group-item text-center">
+                                    <img src="./img/dog.svg" class="img-fluid mb-2" style="max-height: 100px;" alt="Kategori yok">
+                                    <div>Henüz kategori yok.</div>
+                                </li>
+                            <?php endif; ?>
                             <?php foreach ($categories as $cat): ?>
                                 <li class="list-group-item d-flex align-items-center justify-content-between <?php if ($filter_category_id == $cat['category_id']) echo 'active_1'; ?>">
                                     <div class="d-flex align-items-center gap-2">
@@ -238,47 +249,54 @@ if ($stmt) {
                     </div>
                 </div>
             </div>
-            <div class="col-md-7">
-                <div class="card p-4 shadow-sm" >
+            <div class="col-lg-7">
+                <div class="card p-4 pb-1 shadow-sm " style="border-bottom: none; border-top: none;" >
                     <?php
                         $category_stmt = execute_query($conn, "SELECT * FROM categories WHERE user_id = ?", "i", $user_id);
                         $categories = mysqli_stmt_get_result($category_stmt);
                         
                     ?>
                     <form method="post" class="w-100">
-                        <div class="d-flex w-100 mb-3 align-items-center todo_form">
+                        <div class="d-flex w-100 mb-2 align-items-center todo_form">
                             <input type="text" name="todo_text" class="form-control flex-grow-1 me-2" placeholder="Yapacağınız Şey..." required>
-                            <select name="category_id" class="form-select me-2" style="width: 150px;">
+                            <select name="category_id" class="form-select me-2 category_select">
                                 <?php foreach ($categories as $cat): ?>
                                     <option value="<?php echo $cat['category_id']; ?>"><?php echo htmlspecialchars($cat['category_name']); ?></option>
                                 <?php endforeach; ?>
                             </select>
-
-
                             <button type="submit" name="add_todo" class="btn text-white fw-bold px-3" style="background-color:#ff8269;">+</button>
                         </div>
                     </form>
-                    <ul class="list-group">
-                        <?php while ($todo = mysqli_fetch_assoc($todos)): ?>
-                            <li class="list-group-item d-flex align-items-center justify-content-between gap-2 <?php echo ($todo['done'] ?? 0) ? 'completed' : ''; ?>">
-                                <div class="d-flex align-items-start flex-grow-1 overflow-hidden gap-2" style="min-width: 0;">
+                    <ul  class="list-group todo-list-scroll" style="min-height: 503px; overflow-y: auto;">
+                        <?php
+                            $hasTodo = false;
+                            while ($todo = mysqli_fetch_assoc($todos)) {
+                                $hasTodo = true;
+                        ?>
+                            <li class="list-group-item d-flex align-items-center justify-content-between gap-2  <?php echo ($todo['done'] ?? 0) ? 'completed' : ''; ?>">
+                                <div class="d-flex align-items-start flex-grow-1 gap-2" style="min-width: 0; overflow-x: auto; white-space: nowrap;">
                                     <form method="post" class="m-0 p-0" style="display: inline-block; width: auto;">
                                         <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
                                         <input type="hidden" name="done" value="<?php echo ($todo['done'] ?? 0) ? '0' : '1'; ?>">
                                         <input type="checkbox" class="form-check-input custom-checkbox" onchange="this.form.submit()" <?php echo ($todo['done'] ?? 0) ? 'checked' : ''; ?>>
                                     </form>
                                     <div class="d-flex align-items-center gap-2">
-                                        <div style="width: 12px; height: 12px; border-radius: 50%; background-color: <?php echo $categoryColors[$todo['category_name']] ?? '#ced4da'; ?>;">
-                                        </div>
-                                        <span class="text-break text-start <?php echo ($todo['done'] ?? 0) ? 'text-decoration-line-through text-muted' : ''; ?>">
+                                        <div style="width: 12px; height: 12px; border-radius: 50%; background-color: <?php echo $categoryColors[$todo['category_name']] ?? '#ced4da'; ?>;"></div>
+                                        <div class="todo-text-scroll <?php echo ($todo['done'] ?? 0) ? 'text-decoration-line-through text-muted' : ''; ?>">
                                             <?php echo htmlspecialchars($todo['todo_text']); ?>
-                                        </span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="d-flex gap-1">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editModal" data-id="<?php echo $todo['todo_id']; ?>" data-text="<?php echo htmlspecialchars($todo['todo_text']); ?>">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editModal"
+                                        data-id="<?php echo $todo['todo_id']; ?>"
+                                        data-text="<?php echo htmlspecialchars($todo['todo_text']); ?>"
+                                        data-category-id="<?php echo $todo['category_id']; ?>">
                                         <i class="bi bi-pencil-fill"></i>
                                     </button>
+
                                     <form method="post" action="delete_todo.php" class="m-0 p-0">
                                         <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
                                         <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -287,23 +305,31 @@ if ($stmt) {
                                     </form>
                                 </div>
                             </li>
-                        <?php endwhile; ?>
+                        <?php } ?>
+
+                        <?php if (!$hasTodo): ?>
+                            <li class="list-group-item text-center mb-3 d-flex flex-column align-items-center justify-content-center pt-5">
+                                <img src="img/empty_todo.svg" alt="Boş Liste" style="max-height: 443px;" class=" img-fluid mb-3">
+                                <p class="text-muted">Yapılacaklar listen şu an boş. Hemen bir şeyler eklemeye ne dersin? 🚀</p>
+                            </li>
+                        <?php endif; ?>
                     </ul>
-                    <div class="mt-3">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item <?php if ($page <= 1) echo 'disabled'; ?>">
-                                <a class="page-link" href="<?php if ($page > 1) echo '?page=' . ($page - 1); else echo '#'; ?>">Önceki</a>
-                            </li>
-                            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
-                                    <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                    <?php if ($hasTodo): ?>
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item <?php if ($page <= 1) echo 'disabled'; ?>">
+                                    <a class="page-link" href="<?php if ($page > 1) echo '?page=' . ($page - 1); else echo '#'; ?>">Önceki</a>
                                 </li>
-                            <?php endfor; ?>
-                            <li class="page-item <?php if ($page >= $total_pages) echo 'disabled'; ?>">
-                                <a class="page-link" href="<?php if ($page < $total_pages) echo '?page=' . ($page + 1); else echo '#'; ?>">Sonraki</a>
-                            </li>
-                        </ul>
-                    </div>
+                                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                    <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
+                                        <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                    </li>
+                                <?php endfor; ?>
+                                <li class="page-item <?php if ($page >= $total_pages) echo 'disabled'; ?>">
+                                    <a class="page-link" href="<?php if ($page < $total_pages) echo '?page=' . ($page + 1); else echo '#'; ?>">Sonraki</a>
+                                </li>
+                            </ul>
+                    <?php endif; ?>
+
                 </div>
             </div>
         </div>
@@ -325,7 +351,17 @@ if ($stmt) {
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="todo_id" id="editTodoId">
-                    <input type="text" class="form-control  px-4 py-2" id="editTodoText" name="todo_text" placeholder="Update your task..." required>
+
+                    <!-- Text -->
+                    <input type="text" class="form-control px-4 py-2 mb-3" id="editTodoText" name="todo_text" placeholder="Update your task..." required>
+
+                    <!-- Category -->
+                    <select name="category_id" id="editTodoCategory" class="form-select">
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo $cat['category_id']; ?>"><?php echo htmlspecialchars($cat['category_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
@@ -335,6 +371,7 @@ if ($stmt) {
         </div>
     </div>
 </form>
+
 
 
 <form method="POST" action="update_profile.php" enctype="multipart/form-data">
@@ -406,24 +443,24 @@ if ($stmt) {
 
 
 <?php if (isset($_SESSION['open_profile_modal']) && $_SESSION['open_profile_modal']): ?>
-<script>
-    window.addEventListener('DOMContentLoaded', () => {
-        const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
-        profileModal.show();
-    });
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const profileModalElement = document.getElementById('profileModal');
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+            profileModal.show();
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const profileModalElement = document.getElementById('profileModal');
 
-    profileModalElement.addEventListener('hidden.bs.modal', () => {
-        const errorDiv = document.getElementById('email-error-msg');
-        if (errorDiv) {
-            errorDiv.remove();
-        }
-    });
-});
-</script>
+            profileModalElement.addEventListener('hidden.bs.modal', () => {
+                const errorDiv = document.getElementById('email-error-msg');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+            });
+        });
+    </script>
 
 <?php unset($_SESSION['open_profile_modal']); ?>
 <?php endif; ?>
@@ -432,7 +469,5 @@ document.addEventListener('DOMContentLoaded', () => {
     integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" 
     crossorigin="anonymous"></script>
     <script src="./js/app.js"></script>
-    
-    
 </body>
 </html>

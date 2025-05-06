@@ -316,10 +316,28 @@ main.sign-up-mode .carousel {
     color: #212529;
 }
 
+.category_select{
+  width: 150px;
+}
+
+
+
+.todo_text-scroll {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 
 
 
 @media (max-width: 850px) {
+  .todo-card {
+    display: flex;
+    flex-direction: column;
+    height: auto
+  }
   .box {
     height: auto;
     max-width: 550px;
@@ -332,6 +350,9 @@ main.sign-up-mode .carousel {
     width: revert;
     height: revert;
     padding: 2rem;
+  }
+  .category_select{
+    width: 100px;
   }
 
   .forms-wrap {

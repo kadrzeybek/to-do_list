@@ -37,3 +37,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user_id) {
         echo "Veritabanı güncelleme başarısız.";
     }
 }
+

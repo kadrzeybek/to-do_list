@@ -38,19 +38,22 @@ bullets.forEach((bullet) => {
   bullet.addEventListener("click", moveSlider);
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+  const editModal = document.getElementById('editModal');
+  if (!editModal) return;
 
-const editModal = document.getElementById('editModal');
-        editModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const todoId = button.getAttribute('data-id');
-            const todoText = button.getAttribute('data-text');
+  editModal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      const todoId = button.getAttribute('data-id');
+      const todoText = button.getAttribute('data-text');
+      const categoryId = button.getAttribute('data-category-id');
 
-            const modalTodoId = editModal.querySelector('#editTodoId');
-            const modalTodoText = editModal.querySelector('#editTodoText');
+      const modalTodoId = document.getElementById('editTodoId');
+      const modalTodoText = document.getElementById('editTodoText');
+      const modalCategory = document.getElementById('editTodoCategory');
 
-            modalTodoId.value = todoId;
-            modalTodoText.value = todoText;
-        });
-
-
-
+      modalTodoId.value = todoId;
+      modalTodoText.value = todoText;
+      modalCategory.value = categoryId;
+  });
+});
