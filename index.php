@@ -238,9 +238,13 @@ if ($stmt) {
                                     
                                     <form method="POST" action="delete_category.php" class="m-0 p-0">
                                         <input type="hidden" name="category_id" value="<?php echo $cat['category_id']; ?>">
+                                        <a href="export_excel.php?category_id=<?php echo $cat['category_id']; ?>" class="btn btn-sm btn-outline-success me-1" style="padding: 2px 6px;" title="Excel İndir">
+                                            <i class="bi bi-file-earmark-excel-fill"></i>
+                                        </a>
                                         <button type="submit" class="btn btn-sm btn-outline-danger" style="padding: 2px 6px;">
                                             <i class="bi bi-trash-fill"></i>
                                         </button>
+
                                     </form>
                                 </li>
                             <?php endforeach; ?>
@@ -256,7 +260,7 @@ if ($stmt) {
                         $categories = mysqli_stmt_get_result($category_stmt);
                         
                     ?>
-                    <form method="post" class="w-100">
+                    <form method="post" class="w-100 mb-3">
                         <div class="d-flex w-100 mb-2 align-items-center todo_form">
                             <input type="text" name="todo_text" class="form-control flex-grow-1 me-2" placeholder="Yapacağınız Şey..." required>
                             <select name="category_id" class="form-select me-2 category_select">
@@ -309,7 +313,7 @@ if ($stmt) {
 
                         <?php if (!$hasTodo): ?>
                             <li class="list-group-item text-center mb-3 d-flex flex-column align-items-center justify-content-center pt-5">
-                                <img src="img/empty_todo.svg" alt="Boş Liste" style="max-height: 443px;" class=" img-fluid mb-3">
+                                <img src="img/empty_todo.svg" alt="Boş Liste" style="max-height: 430px;" class=" img-fluid mb-3">
                                 <p class="text-muted">Yapılacaklar listen şu an boş. Hemen bir şeyler eklemeye ne dersin? 🚀</p>
                             </li>
                         <?php endif; ?>
@@ -336,11 +340,7 @@ if ($stmt) {
     </div>
 
 
-
-
-
-
-
+<!-- ToDo Güncelleme Modal -->
 <form method="POST" action="index.php">
     <div id="editModal" class="modal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -351,11 +351,7 @@ if ($stmt) {
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="todo_id" id="editTodoId">
-
-                    <!-- Text -->
                     <input type="text" class="form-control px-4 py-2 mb-3" id="editTodoText" name="todo_text" placeholder="Update your task..." required>
-
-                    <!-- Category -->
                     <select name="category_id" id="editTodoCategory" class="form-select">
                         <?php foreach ($categories as $cat): ?>
                             <option value="<?php echo $cat['category_id']; ?>"><?php echo htmlspecialchars($cat['category_name']); ?></option>
@@ -373,7 +369,7 @@ if ($stmt) {
 </form>
 
 
-
+<!-- Profil Güncelleme Modal -->
 <form method="POST" action="update_profile.php" enctype="multipart/form-data">
 <?php if (isset($error)): ?>
   <div class="alert alert-danger"><?php echo $error; ?></div>
@@ -432,7 +428,7 @@ if ($stmt) {
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">Hesabımı Sil</button>
+                    <button type="button" class="btn btn-outline-danger me-auto" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">Hesabımı Sil</button>
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
                     <button type="submit" class="btn btn-primary">Kaydet</button>
                 </div>

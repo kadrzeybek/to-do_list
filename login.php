@@ -48,18 +48,17 @@ if (isset($_POST['submit'])) {
         $result = mysqli_stmt_get_result($stmt);
         if (mysqli_num_rows($result) > 0) {
           $_SESSION['register_error'] = "Bu e-posta mevcut.";
+          
         } else {
             // Yeni kullanıcı kaydı
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
             $stmt = execute_query($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", "sss", $username, $email, $hashedPassword);
-            $stmt = execute_query($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", "sss", $username, $email, $hashedPassword);
-if ($stmt) {
-    $_SESSION['show_login'] = true; // ✅ başarılı kayıt → giriş ekranı göster
-} else {
-    $_SESSION['register_error'] = "Kayıt başarısız. Lütfen tekrar deneyin.";
-}
-
-        }
+            if ($stmt) {
+                $_SESSION['show_login'] = true; 
+            } else {
+                $_SESSION['register_error'] = "Kayıt başarısız. Lütfen tekrar deneyin.";
+            }
+          }
     }
 }
 
@@ -131,7 +130,7 @@ mysqli_close($conn);
                 <label>Şifre</label>
               </div>
               <?php if (isset($_SESSION['register_error'])): ?>
-                <p style="color: red; font-size: 0.9rem;">
+                <p style="color: red; font-size: 0.9rem; margin-top: -1.5rem; margin-bottom: 1rem;">
                   <?php echo $_SESSION['register_error']; unset($_SESSION['register_error']); ?>
                 </p>
               <?php endif; ?>
