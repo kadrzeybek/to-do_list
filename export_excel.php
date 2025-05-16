@@ -1,50 +1,37 @@
 <?php
-// Hataları göster
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 session_start();
-require_once 'database.php';
 
-// Eğer execute_query yoksa buraya da eklenmeli:
-function execute_query($conn, $sql, $types = '', ...$params) {
-    $stmt = mysqli_stmt_init($conn);
-    if (mysqli_stmt_prepare($stmt, $sql)) {
-        if (!empty($types)) {
-            mysqli_stmt_bind_param($stmt, $types, ...$params);
-        }
-        mysqli_stmt_execute($stmt);
-        return $stmt;
-    }
-    return false;
-}
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/functions/helpers.php';
 
+// ✅ Kullanıcı doğrulaması
 if (!isset($_SESSION['user_id']) || !isset($_GET['category_id'])) {
     die("Yetkisiz erişim.");
 }
 
-$user_id = $_SESSION['user_id'];
+$user_id = intval($_SESSION['user_id']);
 $category_id = intval($_GET['category_id']);
 
-// ✅ CSV çıktısı için içerik türü
+// ✅ Dosya adı ve çıktı ayarları
+$filename = "category_{$category_id}_todos.csv";
+
 header("Content-Type: text/csv; charset=utf-8");
-header("Content-Disposition: attachment; filename=category_todos.csv");
+header("Content-Disposition: attachment; filename=$filename");
 header("Pragma: no-cache");
 header("Expires: 0");
 
-// ✅ Türkçe karakter desteği için BOM
+// ✅ UTF-8 BOM ekle (Excel'de Türkçe karakter sorunu yaşamamak için)
 echo "\xEF\xBB\xBF";
 
-// ✅ Başlıklar
-echo "ToDo Metni;Durum;Güncellenme Tarihi\n";
+// ✅ CSV başlıkları
+echo "ToDo Metni;Durum;Güncellenme Tarihi;Bitiş Tarihi\n";
 
-// ✅ Verileri yaz
+// ✅ Kullanıcıya ait ve kategoriye ait verileri çek
 $stmt = execute_query(
     $conn,
-    "SELECT todo_text, done, updated_at 
-     FROM todos 
-     WHERE user_id = ? AND category_id = ?",
+    "SELECT todo_text, done, updated_at, due_date 
+    FROM todos 
+    WHERE user_id = ? AND category_id = ?",
     "ii",
     $user_id,
     $category_id
@@ -53,13 +40,14 @@ $stmt = execute_query(
 if ($stmt) {
     $result = mysqli_stmt_get_result($stmt);
     while ($row = mysqli_fetch_assoc($result)) {
-        $text = str_replace(["\r", "\n", ";"], " ", $row['todo_text']); // Satır içi taşmaları engelle
-        $done = $row['done'] ? 'Tamamlandı' : 'Yapılmadı';
-        $updated = $row['updated_at'];
-        echo "$text;$done;$updated\n";
+        $text     = str_replace(["\r", "\n", ";"], " ", $row['todo_text']); // CSV bozulmasın
+        $status   = $row['done'] ? 'Tamamlandı' : 'Yapılmadı';
+        $updated  = $row['updated_at'] ?? '-';
+        $due_date = $row['due_date'] ?? '-';
+        
+        echo "{$text};{$status};{$updated};{$due_date}\n";
     }
 }
 
 mysqli_close($conn);
 exit;
-?>

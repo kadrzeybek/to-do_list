@@ -1,69 +1,75 @@
 <?php
 session_start();
-require_once 'database.php';
-
-// Yardımcı Fonksiyon
-function execute_query($conn, $sql, $types = '', ...$params) {
-    $stmt = mysqli_stmt_init($conn);
-    if (mysqli_stmt_prepare($stmt, $sql)) {
-        if (!empty($types)) {
-            mysqli_stmt_bind_param($stmt, $types, ...$params);
-        }
-        mysqli_stmt_execute($stmt);
-        return $stmt;
-    }
-    return false;
-}
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/functions/helpers.php';
 
 // --- Giriş İşlemi ---
-if (isset($_POST['login'])) {
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $_SESSION['login_error'] = "Geçerli bir e-posta adresi giriniz.";
+        header("Location: login.php");
+        exit();
+    }
 
     $stmt = execute_query($conn, "SELECT * FROM users WHERE email = ?", "s", $email);
-    if ($stmt) {
-      $result = mysqli_stmt_get_result($stmt);
-      if ($row = mysqli_fetch_assoc($result)) {
-          if (password_verify($password, $row['password'])) {
-              $_SESSION['username'] = $row['username'];
-              $_SESSION['user_id'] = $row['user_id'];
-              header("Location: index.php");
-              exit();
-          }
-      }
-      $_SESSION['login_error'] = "E-posta veya şifre yanlış.";
-  }
-  
+    $result = mysqli_stmt_get_result($stmt);
+
+    if ($row = mysqli_fetch_assoc($result)) {
+        if (password_verify($password, $row['password'])) {
+            $_SESSION['username'] = $row['username'];
+            $_SESSION['user_id'] = $row['user_id'];
+            header("Location: index.php");
+            exit();
+        }
+    }
+
+    $_SESSION['login_error'] = "E-posta veya şifre yanlış.";
+    header("Location: login.php");
+    exit();
 }
 
 // --- Kayıt İşlemi ---
-if (isset($_POST['submit'])) {
-    $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    // Kullanıcı zaten kayıtlı mı kontrol
-    $stmt = execute_query($conn, "SELECT * FROM users WHERE email = ?", "s", $email);
-    if ($stmt) {
-        $result = mysqli_stmt_get_result($stmt);
-        if (mysqli_num_rows($result) > 0) {
-          $_SESSION['register_error'] = "Bu e-posta mevcut.";
-          
-        } else {
-            // Yeni kullanıcı kaydı
-            $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-            $stmt = execute_query($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", "sss", $username, $email, $hashedPassword);
-            if ($stmt) {
-                $_SESSION['show_login'] = true; 
-            } else {
-                $_SESSION['register_error'] = "Kayıt başarısız. Lütfen tekrar deneyin.";
-            }
-          }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $_SESSION['register_error'] = "Geçerli bir e-posta adresi giriniz.";
+        header("Location: login.php");
+        exit();
     }
+
+    // E-posta daha önce kayıtlı mı?
+    $stmt = execute_query($conn, "SELECT user_id FROM users WHERE email = ?", "s", $email);
+    $result = mysqli_stmt_get_result($stmt);
+
+    if (mysqli_num_rows($result) > 0) {
+        $_SESSION['register_error'] = "Bu e-posta adresi zaten kullanılıyor.";
+        header("Location: login.php");
+        exit();
+    }
+
+    // Yeni kullanıcı kaydı
+    $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+    $stmt = execute_query($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", "sss", $username, $email, $hashedPassword);
+
+    if ($stmt) {
+        $_SESSION['show_login'] = true;
+    } else {
+        $_SESSION['register_error'] = "Kayıt sırasında hata oluştu.";
+    }
+
+    header("Location: login.php");
+    exit();
 }
 
 mysqli_close($conn);
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -72,7 +78,7 @@ mysqli_close($conn);
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>To-Do List</title>
-    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <main>
@@ -98,13 +104,18 @@ mysqli_close($conn);
                 <input type="password" name="password" minlength="4" class="input-field" autocomplete="on" required/>
                 <label>Şifre</label>
               </div>
+              <div class="forget">
+                <a href="forgot_password.php" class="forgot-link" style="font-size: 0.9rem; color: #333;">Şifreni mi unuttun?</a>
+              </div>
               <?php if (isset($_SESSION['login_error'])): ?>
-                <p style="color: red; font-size: 0.9rem; margin-top: -1.5rem; margin-bottom: 1rem;">
+                <p style="color: red; font-size: 0.9rem; margin-top: -3.8rem; margin-bottom: 2rem;">
                   <?php echo $_SESSION['login_error']; unset($_SESSION['login_error']); ?>
                 </p>
               <?php endif; ?>
+              
               <input type="submit" name="login" value="Giriş Yap" class="sign-btn" />
             </div>
+            
           </form>
           <form action="login.php" method="post" autocomplete="off" class="sign-up-form login_form">
             <div class="logo">
@@ -139,6 +150,7 @@ mysqli_close($conn);
             </div>
             
           </form>
+          
           </div>
           <div class="carousel">
             <div class="images-wrapper">
@@ -165,7 +177,7 @@ mysqli_close($conn);
     </div>
   </main>
 
-  <script src="./js/app.js"></script>
+  <script src="./assets/js/app.js"></script>
   <?php if (isset($_SESSION['show_login']) && $_SESSION['show_login']): ?>
   <script>
     document.addEventListener('DOMContentLoaded', function () {

@@ -209,6 +209,24 @@ main.sign-up-mode .carousel {
   left: 0%;
 }
 
+main.forget-mode .login_form.sign-in-form {
+  opacity: 0;
+  pointer-events: none;
+}
+
+main.forget-mode .login_form.sign-up-form {
+  opacity: 1;
+  pointer-events: all;
+}
+
+main.forget-mode .forms-wrap {
+  left: 55%;
+}
+
+main.forget-mode .carousel {
+  left: 0%;
+}
+
 .carousel {
   position: absolute;
   height: 100%;
@@ -267,6 +285,9 @@ main.sign-up-mode .carousel {
   overflow: hidden;
   margin-bottom: 2.5rem;
 }
+.forget{
+  margin-bottom: 15px;
+}
 
 .text-group {
   display: flex;
@@ -322,13 +343,28 @@ main.sign-up-mode .carousel {
 
 
 
-.todo_text-scroll {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.todo-text-scroll-wrapper {
+    position: relative;
+    display: inline-block;
 }
 
+.todo-date {
+    display: none;
+    font-size: 0.75rem;
+    margin-left: 0.7rem;
+    
+}
+
+.todo-text-scroll-wrapper:hover .todo-date {
+    display: inline;
+}
+
+.form-content {
+  display: none;
+}
+.form-content.active {
+  display: block;
+}
 
 
 
@@ -380,6 +416,14 @@ main.sign-up-mode .carousel {
   }
 
   main.sign-up-mode .login_form.sign-up-form {
+    transform: translateX(0%);
+  }
+
+    main.forget-mode .login_form.sign-in-form {
+    transform: translateX(-100%);
+  }
+
+  main.forget-mode .login_form.sign-up-form {
     transform: translateX(0%);
   }
 

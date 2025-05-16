@@ -1,5 +1,6 @@
 const inputs = document.querySelectorAll(".input-field");
 const toggle_btn = document.querySelectorAll(".toggle");
+const reset_btn = document.querySelectorAll(".reset");
 const main = document.querySelector("main");
 const bullets = document.querySelectorAll(".bullets span");
 const images = document.querySelectorAll(".image");
@@ -17,6 +18,11 @@ inputs.forEach((inp) => {
 toggle_btn.forEach((btn) => {
   btn.addEventListener("click", () => {
     main.classList.toggle("sign-up-mode");
+  });
+});
+reset_btn.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    main.classList.toggle("forget-mode");
   });
 });
 
@@ -47,7 +53,9 @@ document.addEventListener('DOMContentLoaded', function () {
       const todoId = button.getAttribute('data-id');
       const todoText = button.getAttribute('data-text');
       const categoryId = button.getAttribute('data-category-id');
-
+      const modalTodoDueDate = editModal.querySelector('#editTodoDueDate');
+      
+      
       const modalTodoId = document.getElementById('editTodoId');
       const modalTodoText = document.getElementById('editTodoText');
       const modalCategory = document.getElementById('editTodoCategory');
@@ -55,5 +63,6 @@ document.addEventListener('DOMContentLoaded', function () {
       modalTodoId.value = todoId;
       modalTodoText.value = todoText;
       modalCategory.value = categoryId;
+      modalTodoDueDate.value = button.getAttribute('data-due-date');
   });
 });
