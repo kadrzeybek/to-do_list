@@ -32,4 +32,33 @@ function sendResetMail($toEmail, $resetLink) {
     }
 }
 
+function sendOTPCode($toEmail, $otp) {
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host = 'sandbox.smtp.mailtrap.io';
+        $mail->SMTPAuth = true;
+        $mail->Username = '79b5ffcb06724f'; 
+        $mail->Password = '254f0d4e718ca0'; 
+        $mail->Port = 2525;
+
+        $mail->CharSet = 'UTF-8';
+        $mail->Encoding = 'base64';
+
+        $mail->setFrom('no-reply@yourapp.com', 'ToDo App');
+        $mail->addAddress($toEmail);
+        $mail->isHTML(true);
+        $mail->Subject = 'Giriş Doğrulama Kodunuz';
+        $mail->Body = "<h3>Doğrulama kodunuz: $otp</h3><p>Kod 1 dakika geçerlidir.</p>";
+
+        $mail->send();
+    } catch (Exception $e) {
+        echo "<pre>Mail gönderilemedi: {$mail->ErrorInfo}</pre>";
+        exit();
+    }
+}
+
+
+
 ?>

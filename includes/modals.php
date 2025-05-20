@@ -38,82 +38,81 @@
 
 <!-- Profil Güncelleme Modal -->
 <form method="POST" action="update_profile.php" enctype="multipart/form-data">
-<?php if (isset($error)): ?>
-  <div class="alert alert-danger"><?php echo $error; ?></div>
-<?php endif; ?>
-    <div id="profileModal" class="modal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+  <div class="modal fade" id="profileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content shadow-lg border-0 rounded-4">
 
-                <div class="modal-header">
-                    <h5 class="modal-title">👤 Profil</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                </div>
-
-                <div class="modal-body">
-                    <div class="text-center">
-                            <p class="text-center">Avatar Seç</p>
-                        </div>
-                        <div class="row justify-content-center mb-3 py-4">
-                            <div class="col-4 col-md-3 position-relative">
-                                <input type="radio" class="custom-control-input" id="default" name="avatar" value="default.png" <?php if ($user['avatar'] === 'default.png') echo 'checked'; ?>>
-                                <label class="custom-control-label ms-4" for="default">
-                                    <img src="img/default.png" alt="#" style="height:100px; width:100px" class="img-fluid">
-                                </label>
-                            </div>
-                            <div class="col-4 col-md-3 position-relative">
-                                <input type="radio" class="custom-control-input" id="man" name="avatar" value="man.png" <?php if ($user['avatar'] === 'man.png') echo 'checked'; ?>>
-                                <label class="custom-control-label ms-4" for="man">
-                                    <img src="img/man.png" alt="#" style="height:100px; width:100px" class="img-fluid">
-                                </label>
-                            </div>
-                            <div class="col-4 col-md-3 position-relative">
-                                <input type="radio" class="custom-control-input" id="woman" name="avatar" value="woman.png" <?php if ($user['avatar'] === 'woman.png') echo 'checked'; ?>>
-                                <label class="custom-control-label ms-4" for="woman">
-                                    <img src="img/woman.png" alt="#" style="height:100px; width:100px" class="img-fluid">
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="row mt-4">
-                            <div class="col-12 mb-2">
-                                <h6>Kullanıcı Bilgileri</h6>
-                                <input type="text" name="username" class="form-control" placeholder="Kullanıcı adı" value="<?php echo htmlspecialchars($username); ?>" required>
-                            </div>
-                            <div class="col-12 mb-2">
-                                <input type="email" name="email" class="form-control" placeholder="E-mail" value="<?php echo htmlspecialchars($user['email']); ?>" required>
-                                <?php if (isset($_SESSION['profile_error'])): ?>
-                                    <div id="email-error-msg" class="text-danger mt-1" style="font-size: 0.875rem;">
-                                        <?php echo $_SESSION['profile_error']; unset($_SESSION['profile_error']); ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                            <div class="col-12 mb-2">
-                                <input type="password" name="new_password" id="new_password" class="form-control" placeholder="Yeni şifre">
-                            </div>
-
-                            <div class="col-12 mb-2">
-                                <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Yeni şifreyi tekrar gir">
-                            </div>
-
-                            <?php if (isset($_SESSION['password_error'])): ?>
-                                <div class="text-danger mt-1" style="font-size: 0.875rem;">
-                                    <?php echo $_SESSION['password_error']; unset($_SESSION['password_error']); ?>
-                                </div>
-                            <?php endif; ?>
-
-                        </div>
-                    </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-danger me-auto" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">Hesabımı Sil</button>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
-                    <button type="submit" class="btn btn-primary">Kaydet</button>
-                </div>
-            </div>
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title"><i class="bi bi-person-circle me-2"></i>Profil Bilgileri</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
         </div>
+
+        <div class="modal-body">
+          <?php if (isset($error)): ?>
+            <div class="alert alert-danger"><?php echo $error; ?></div>
+          <?php endif; ?>
+
+          <div class="text-center mb-4">
+            <p class="mb-1 fw-semibold">Avatar Seç</p>
+            <div class="d-flex justify-content-center gap-4">
+              <?php
+                $avatars = ['default.png', 'man.png', 'woman.png'];
+                foreach ($avatars as $avt):
+              ?>
+              <label class="position-relative">
+                <input type="radio" name="avatar" value="<?= $avt ?>" class="visually-hidden"
+                  <?= ($user['avatar'] === $avt) ? 'checked' : '' ?>>
+                <img src="img/<?= $avt ?>" class="rounded-circle border border-2 <?= ($user['avatar'] === $avt) ? 'border-primary' : 'border-secondary' ?>" style="height: 80px; width: 80px; object-fit: cover; cursor: pointer;">
+              </label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12 my-2">
+              <h6 >Kullanıcı Adı</h6>
+              <input type="text" name="username" class="form-control shadow-sm" value="<?= htmlspecialchars($username) ?>" required>
+            </div>
+
+            <div class="col-12 my-2">
+              <h6>E-posta</h6>
+              <input type="email" name="email" class="form-control shadow-sm" value="<?= htmlspecialchars($user['email']) ?>" required>
+              <?php if (isset($_SESSION['profile_error'])): ?>
+                <div class="text-danger mt-1 small"><?= $_SESSION['profile_error']; unset($_SESSION['profile_error']); ?></div>
+              <?php endif; ?>
+            </div>
+            <div class="col-md-12">
+                <h6>Şifre Değiştirme Formu</h6>
+            </div>
+            <div class="col-md-6">
+              <input type="password" name="new_password" id="new_password" class="form-control shadow-sm" placeholder="Yeni Şifre">
+            </div>
+
+            <div class="col-md-6">
+              
+              <input type="password" name="confirm_password" id="confirm_password" class="form-control shadow-sm" placeholder="Şifre Tekrar">
+            </div>
+
+            <?php if (isset($_SESSION['password_error'])): ?>
+              <div class="col-12 text-danger small"><?= $_SESSION['password_error']; unset($_SESSION['password_error']); ?></div>
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <div class="modal-footer border-top-0 pt-3">
+          <button type="button" class="btn btn-outline-danger me-auto" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+            <i class="bi bi-trash me-1"></i> Hesabımı Sil
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i> Kaydet
+          </button>
+        </div>
+      </div>
     </div>
+  </div>
 </form>
+
 
 <!-- Hesap Silme Onay Modali -->
 <form method="POST" action="delete_account.php">

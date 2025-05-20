@@ -1,14 +1,11 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+
 
 session_start();
 require_once 'config/database.php';
 require_once 'functions/helpers.php';
 
 
-// --- Kullanıcı Kontrolü ve Bilgileri Çek ---
 if (!isset($_SESSION['username'])) {
     header("Location: login.php");
     exit();
@@ -16,7 +13,7 @@ if (!isset($_SESSION['username'])) {
 $username = $_SESSION['username'];
 $user_id = $_SESSION['user_id'];
 
-// Kullanıcı bilgilerini çek
+// Kullanıcı bilgileri
 $stmt = execute_query($conn, "SELECT user_id, avatar, email FROM users WHERE username = ?", "s", $username);
 if ($stmt) {
     $result = mysqli_stmt_get_result($stmt);

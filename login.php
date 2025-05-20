@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 session_start();
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/functions/helpers.php';
@@ -18,18 +21,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $result = mysqli_stmt_get_result($stmt);
 
     if ($row = mysqli_fetch_assoc($result)) {
-        if (password_verify($password, $row['password'])) {
-            $_SESSION['username'] = $row['username'];
-            $_SESSION['user_id'] = $row['user_id'];
-            header("Location: index.php");
+        if (!password_verify($password, $row['password'])) {
+            $_SESSION['login_error'] = "E-posta veya şifre yanlış.";
+            header("Location: login.php");
             exit();
         }
+
+
+
+        $otp = rand(100000, 999999);
+        $expires = date("Y-m-d H:i:s", strtotime("+1 minutes"));
+
+
+        execute_query($conn, "UPDATE users SET otp_code = ?, otp_expires = ? WHERE user_id = ?", "ssi", $otp, $expires, $row['user_id']);
+
+        require_once 'mailer.php';
+        sendOTPCode($email, $otp); 
+
+        $_SESSION['2fa_user_id'] = $row['user_id'];
+        $_SESSION['2fa_username'] = $row['username'];
+
+        header("Location: verify_2fa.php");
+        exit();
     }
 
     $_SESSION['login_error'] = "E-posta veya şifre yanlış.";
     header("Location: login.php");
     exit();
 }
+
 
 // --- Kayıt İşlemi ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
