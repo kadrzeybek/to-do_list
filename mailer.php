@@ -2,29 +2,33 @@
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require_once __DIR__ . '/vendor/autoload.php';
+require 'vendor/autoload.php';
 
-function sendResetMail($toEmail, $body, $subject = 'Şifre Sıfırlama') {
+function sendResetMail($toEmail, $resetLink) {
     $mail = new PHPMailer(true);
+
     try {
         $mail->isSMTP();
-        $mail->Host       = 'smtp.mailtrap.io';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = '79b5ffcb06724f';
-        $mail->Password   = '254f0d4e718ca0';
-        $mail->Port       = 2525;
+        $mail->Host = 'sandbox.smtp.mailtrap.io';
+        $mail->SMTPAuth = true;
+        $mail->Username = '79b5ffcb06724f'; 
+        $mail->Password = '254f0d4e718ca0'; 
+        $mail->Port = 2525;
 
-        $mail->setFrom('test@todo.local', 'ToDoList Uygulama');
+        $mail->setFrom('support@yourapp.com', 'ToDo App');
         $mail->addAddress($toEmail);
 
+        $mail->CharSet = 'UTF-8';
+    $mail->Encoding = 'base64';
+
+
         $mail->isHTML(true);
-        $mail->Subject = $subject;
-        $mail->Body    = $body;
+        $mail->Subject = 'Şifre Sıfırlama Bağlantısı';
+        $mail->Body = "Merhaba, <br><br>Şifrenizi sıfırlamak için aşağıdaki bağlantıya tıklayın:<br><a href='$resetLink'>$resetLink</a><br><br>Bu bağlantı sadece 10 dakika geçerlidir.";
 
         $mail->send();
-        return true;
     } catch (Exception $e) {
-        return "Mail gönderilemedi: " . $mail->ErrorInfo;
+        echo "Mail gönderilemedi. Hata: {$mail->ErrorInfo}";
     }
 }
 
