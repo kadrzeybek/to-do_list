@@ -63,9 +63,9 @@ if (!$token) {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="./assets/css/style.css" />
 </head>
-<body>
+<body class="d-flex justify-content-center align-items-center vh-100">
 
-<div class="reset-container mt-5">
+<div class="reset-container shadow-lg mt-5">
   <h2 class="text-center mb-4">Yeni Şifre Belirle</h2>
 
   <?php if ($error_message): ?>
