@@ -16,9 +16,9 @@ A full-featured to-do list web application built using **PHP, MySQL, HTML, CSS, 
 
 ## 📸 Screenshots
 
-| Login Page | 2FA Page | To-Do Dashboard |
-|------------|----------|------------------|
-| ![Login](img/login.png) | ![2FA](img/2fa.png) | ![Dashboard](img/dashboard.png) |
+| Login Page | To-Do Dashboard |
+|------------|------------------|
+| ![Login](img/login.png) | ![Dashboard](img/dashboard.png) |
 
 ## 🛠️ Technologies
 
